@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { Layout } from "../../components/layout/Layout";
-import { Row, Col, Spinner, Card, CardHeader, CardBody, CardFooter, Button, Modal, ModalHeader, ModalBody, ModalFooter } from "reactstrap";
+import { Row, Col, Spinner, Card, CardHeader, CardBody, CardFooter, Button, Modal, ModalHeader, ModalBody, ModalFooter, Input, Label, Form, FormGroup } from "reactstrap";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { BsFillTrashFill } from "react-icons/bs";
@@ -13,10 +13,18 @@ const UsersPosts = () => {
     error: undefined,
     loading: true,
   };
+  const [newPost, setNewpost] = useState({
+    username: "",
+    title: "",
+    body: ""
+  });
+
   const [posts, setPosts] = useState(initialState);
   const { id } = useParams();
   const [modal, setModal] = useState(false);
+  const [editModal, setEditModal] = useState(false);
   const toggle = () => setModal(!modal);
+  const editToggle = () => setEditModal(!editModal);
 
   const getUserPost = () => {
     axios.get(`https://jsonplaceholder.typicode.com/users/${id}/posts`)
@@ -32,10 +40,43 @@ const UsersPosts = () => {
         setPosts({ data: undefined, loading: false, error: err.toString() });
       });
   }
+
   const deletePost = (id) => {
     axios
       .delete(`https://jsonplaceholder.typicode.com/posts/${id}`)
-    getUserPost();
+      .then(() => {
+        getUserPost();
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }
+  const handleSubmit = () => {
+    axios.post("https://jsonplaceholder.typicode.com/posts", newPost)
+      .then(({ data }) => {
+        const maxId = data.reduce((max, product) => {
+          if (product.id > max) max = product.id
+          return max;
+        }, 0)
+        console.log(maxId);
+        setPosts((oldData) => ({
+          ...oldData,
+          data: [...oldData.data, { data, id: maxId + 1 }],
+        }));
+        setNewpost({ title: "", body: "" });
+        toggle();
+        getUserPost();
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setNewpost(prevProduct => ({
+      ...prevProduct,
+      [name]: value
+    }));
   }
   useEffect(() => {
     getUserPost();
@@ -56,23 +97,58 @@ const UsersPosts = () => {
       </div>
       <Modal isOpen={modal} toggle={toggle}>
         <ModalHeader toggle={toggle}>Modal title</ModalHeader>
-        <ModalBody>
-          Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
-          eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-          minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-          aliquip ex ea commodo consequat. Duis aute irure dolor in
-          reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-          pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-          culpa qui officia deserunt mollit anim id est laborum.
-        </ModalBody>
-        <ModalFooter>
-          <Button color="primary" onClick={toggle}>
-            Do Something
-          </Button>{' '}
-          <Button color="secondary" onClick={toggle}>
-            Cancel
-          </Button>
-        </ModalFooter>
+        <Form onSubmit={handleSubmit}>
+          <ModalBody>
+            <FormGroup>
+              <Label for="exampleTitle">Username</Label>
+              <Input value={newPost.username} onChange={(e) => handleChange(e)} type="text" name="username" id="exampleUsername" placeholder="Username" />
+            </FormGroup>
+            <FormGroup>
+              <Label for="exampleTitle">Title</Label>
+              <Input value={newPost.title} onChange={(e) => handleChange(e)} type="text" name="title" id="exampleTitle" placeholder="Title" />
+            </FormGroup>
+            <FormGroup>
+              <Label for="examplePassword">Body</Label>
+              <Input value={newPost.body} onChange={(e) => handleChange(e)} type="textarea" name="body" id="exampleBody" placeholder="Body" />
+            </FormGroup>
+
+          </ModalBody>
+          <ModalFooter>
+            <Button type='submit' color="primary" onClick={toggle}>
+              Submit
+            </Button>{' '}
+            <Button color="secondary" onClick={toggle}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Form>
+      </Modal>
+
+
+
+      <Modal isOpen={editModal} editToggle={editToggle}>
+        <ModalHeader editToggle={editToggle}>Modal title</ModalHeader>
+        <Form onSubmit={handleSubmit}>
+          <ModalBody>
+            <FormGroup>
+              <Label for="exampleTitle">Title</Label>
+              <Input  type="text" name="title" id="exampleTitle" placeholder="Title" />
+            </FormGroup>
+            <FormGroup>
+              <Label for="examplePassword">Body</Label>
+              <Input type="textarea" name="body" id="exampleBody" placeholder="Body" />
+            </FormGroup>
+
+          </ModalBody>
+          <ModalFooter>
+            <Button type='submit' color="primary" editToggle={editToggle}>
+              Submit
+            </Button>{' '}
+            <Button color="secondary" editToggle={editToggle}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Form>
       </Modal>
 
       {posts?.data &&
@@ -85,7 +161,7 @@ const UsersPosts = () => {
                   <CardFooter >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                       <div style={{ marginRight: 10 }}>
-                        <button className="btn btn-secondary">
+                        <button onClick={editToggle} className="btn btn-secondary">
                           <AiFillEdit />
                         </button>
                       </div>
