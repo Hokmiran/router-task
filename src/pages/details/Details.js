@@ -33,7 +33,7 @@ export const Details = () => {
                 setDatas({ data: undefined, loading: false, error: err.toString() });
             });
     }, []);
-    console.log(datas);
+
     return (
         <Layout>
             <Row>

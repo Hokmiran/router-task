@@ -6,23 +6,29 @@ import React, { useEffect, useState } from "react";
 import { BsFillTrashFill } from "react-icons/bs";
 import { AiFillEdit } from "react-icons/ai";
 
-
 const UsersPosts = () => {
-  let initialState = {
-    data: undefined,
-    error: undefined,
-    loading: true,
-  };
   const [newPost, setNewpost] = useState({
     username: "",
     title: "",
     body: ""
   });
 
-  const [posts, setPosts] = useState(initialState);
+  const [editData, setEditData] = useState({
+    title: '',
+    body: ''
+  })
+
+  const [editId, setEditId] = useState(null)
+  const [posts, setPosts] = useState({
+    data: undefined,
+    error: undefined,
+    loading: true,
+  });
+
   const { id } = useParams();
   const [modal, setModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
+
   const toggle = () => setModal(!modal);
   const editToggle = () => setEditModal(!editModal);
 
@@ -51,10 +57,11 @@ const UsersPosts = () => {
         console.log(err);
       });
   }
-  const handleSubmit = () => {
+  const handleSubmit = (e) => {
+    e.preventDefault();
     axios.post("https://jsonplaceholder.typicode.com/posts", newPost)
       .then(({ data }) => {
-        const maxId = data.reduce((max, product) => {
+        const maxId = posts.data.reduce((max, product) => {
           if (product.id > max) max = product.id
           return max;
         }, 0)
@@ -64,7 +71,6 @@ const UsersPosts = () => {
           data: [...oldData.data, { data, id: maxId + 1 }],
         }));
         setNewpost({ title: "", body: "" });
-        toggle();
         getUserPost();
       })
       .catch((err) => {
@@ -82,6 +88,31 @@ const UsersPosts = () => {
     getUserPost();
   }, [id]);
 
+  const handleEdit = (e) => {
+    e.preventDefault();
+    axios.put(`https://jsonplaceholder.typicode.com/posts/${editId}`, editData)
+      .then(res => {
+        getUserPost()
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }
+  const changeEditData = (name, value) => {
+    setEditData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+
+  }
+  const getEditData = (id) => {
+    editToggle()
+    axios.get(`https://jsonplaceholder.typicode.com/posts/${id}`)
+      .then(({ data }) => {
+        setEditData({ title: data.title, body: data.body })
+        setEditId(id)
+      })
+  }
 
 
   return (
@@ -126,25 +157,25 @@ const UsersPosts = () => {
 
 
 
-      <Modal isOpen={editModal} editToggle={editToggle}>
-        <ModalHeader editToggle={editToggle}>Modal title</ModalHeader>
-        <Form onSubmit={handleSubmit}>
+      <Modal isOpen={editModal} toggle={editToggle}>
+        <ModalHeader toggle={editToggle}>Modal title</ModalHeader>
+        <Form onSubmit={handleEdit}>
           <ModalBody>
             <FormGroup>
               <Label for="exampleTitle">Title</Label>
-              <Input  type="text" name="title" id="exampleTitle" placeholder="Title" />
+              <Input type="text" name="title" id="exampleTitle" placeholder="Title" value={editData.title} onChange={(e) => changeEditData('title', e.target.value)} />
             </FormGroup>
             <FormGroup>
               <Label for="examplePassword">Body</Label>
-              <Input type="textarea" name="body" id="exampleBody" placeholder="Body" />
+              <Input type="textarea" name="body" id="exampleBody" placeholder="Body" cols="5" value={editData.body} onChange={(e) => changeEditData('body', e.target.value)} />
             </FormGroup>
 
           </ModalBody>
           <ModalFooter>
-            <Button type='submit' color="primary" editToggle={editToggle}>
+            <Button type='submit' color="primary" onClick={editToggle}>
               Submit
-            </Button>{' '}
-            <Button color="secondary" editToggle={editToggle}>
+            </Button>
+            <Button color="secondary" onClick={editToggle}>
               Cancel
             </Button>
           </ModalFooter>
@@ -161,7 +192,7 @@ const UsersPosts = () => {
                   <CardFooter >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                       <div style={{ marginRight: 10 }}>
-                        <button onClick={editToggle} className="btn btn-secondary">
+                        <button onClick={() => getEditData(id)} className="btn btn-secondary">
                           <AiFillEdit />
                         </button>
                       </div>
